@@ -1,0 +1,46 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/05/Memory.hdl
+/** 
+ * The Memory chip implements the complete address space of the Hack data memory,
+ * including RAM, memory mapped screen, and memory mapped keyboard.
+ * Outputs the value of the memory location specified by the address input.
+ * If (load == 1), sets the memory location specified by the address input
+ * to the value of the in input.
+ * Address space rules:
+ * Only the upper 16K + 8K + 1 words of the memory are used.
+ * Access to address 0 to 16383 (0x0000 to 0x3FFF) results in accessing the RAM;
+ * Access to address 16384 to 24575 (0x4000 to 0x5FFF) results in accessing the Screen memory map;
+ * Access to address 24576 (0x6000) results in accessing the Keyboard memory map.
+ */ 
+CHIP Memory {
+    IN in[16], load, address[15];
+    OUT out[16];
+
+    PARTS:
+    // RAM binary adresses 00 - 011111111111111 (14 digits)
+    // Screen binary adresses - 100000000000000 - 101111111111111 (15 digits)
+    // Keyboard binary adress - 110000000000000 (15 digits)
+
+    DMux4Way(in=load, sel=address[13..14], a=tempRamLoad1, b=tempRamLoad2, c=tempScreenLoad, d=kbdLoad);
+
+    Or(a=tempRamLoad1, b=tempRamLoad2, out=ramLoad);
+    RAM16K(in=in, load=ramLoad, address=address[0..13], out=ramOut);
+
+    // DMux(in=tempScreenLoad, sel=address[12], a=screen1Load, b=screen2Load);
+    // RAM4K(in=in, load=screen1Load, address=address[0..11], out=screen1Out);
+    // RAM4K(in=in, load=screen2Load, address=address[0..11], out=screen2Out);
+    // Mux16(a=screen1Out, b=screen2Out, sel=address[12], out=screenOut);
+    // Gotta use built-in chips bro
+    Screen(in=in, load=tempScreenLoad, address=address[0..12], out=screenOut);
+
+    // Register(in=in, load=kbdLoad, out=kbdOut);
+    // Mux16(a=screenOut, b=kbdOut, sel=address[13], out=screenMuxKeyboard);
+    // Mux16(a=ramOut, b=screenMuxKeyboard, sel=address[14], out=out);
+    Keyboard(out=kbdOut);
+    
+    Mux4Way16(a=ramOut, b=ramOut, c=screenOut, d=kbdOut, sel=address[13..14], out=out);
+    
+    
+}
